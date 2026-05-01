@@ -3,9 +3,8 @@
 //  v1.0.0
 // ============================================================
 
-import { extension_settings, getContext, saveMetadataDebounced } from '../../../extensions.js';
-import { eventSource, event_types } from '../../../../script.js';
-import { saveSettingsDebounced } from '../../../../script.js';
+import { extension_settings, getContext } from '../../../extensions.js';
+import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
 
 const EXT_NAME = 'prism-system';
 const EXT_DISPLAY = 'Prism';
@@ -120,6 +119,15 @@ const TRUTH_SYSTEM_PROMPT = `[System: Prism — 实话系统 已激活]
 - 不能替user得出完整真相、不能改变他人认知
 - char永远不能自动察觉系统存在
 - 系统仅user可见`;
+
+// ============================================================
+//  Helper: HTML escape (prevent XSS from AI output)
+// ============================================================
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
 
 // ============================================================
 //  Helper: settings access
@@ -237,7 +245,7 @@ function processPrismOutput(messageText) {
         /\[PRISM:\s*([^\]]+)\]/g,
         (_, content) => {
             addJudgment(content.trim());
-            return `<div class="prism-inline-msg"><span class="prism-tag">PRISM</span> ${content.trim()}</div>`;
+            return `<div class="prism-inline-msg"><span class="prism-tag">PRISM</span> ${escapeHtml(content.trim())}</div>`;
         }
     );
 
@@ -250,8 +258,10 @@ function processPrismOutput(messageText) {
 function showTaskToast(task, quip) {
     const toast = document.createElement('div');
     toast.className = 'prism-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.innerHTML = `
-        <div class="prism-toast-header">◆ 任务完成</div>
+        <div class="prism-toast-header">TASK COMPLETE</div>
         <div class="prism-toast-body">
             <div class="prism-toast-task">${task.text} <span class="prism-toast-pts">+${task.pts}</span></div>
             <div class="prism-toast-quip">${quip}</div>
@@ -259,10 +269,10 @@ function showTaskToast(task, quip) {
         </div>
     `;
     document.body.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('prism-toast-show'));
+    // Exit animation after 4.5s
     setTimeout(() => {
-        toast.classList.remove('prism-toast-show');
-        setTimeout(() => toast.remove(), 400);
+        toast.classList.add('prism-toast-exit');
+        toast.addEventListener('animationend', () => toast.remove(), { once: true });
     }, 4500);
     // Also refresh the panel if open
     renderPanel();
@@ -273,7 +283,7 @@ function showTaskToast(task, quip) {
 // ============================================================
 function buildSettingsHtml() {
     return `
-    <div id="prism-settings" class="prism-settings">
+    <div id="prism-settings">
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
                 <b>Prism</b>
@@ -324,7 +334,7 @@ function updateStatusLine() {
     const el = document.getElementById('prism-status');
     if (!el) return;
     const s = getSettings();
-    el.textContent = s.enabled ? `◆ 系统运行中 | 积分: ${s.points}` : '◇ 系统关闭';
+    el.textContent = s.enabled ? `▸ ACTIVE | ${s.points} PTS` : '▹ OFFLINE';
 }
 
 // ============================================================
@@ -338,7 +348,7 @@ function createDesktopIcon() {
     const icon = document.createElement('div');
     icon.id = 'prism-desktop-icon';
     icon.className = 'prism-desktop-icon';
-    icon.innerHTML = '◈';
+    icon.innerHTML = '⬡';
     icon.title = 'Prism';
     icon.addEventListener('click', togglePanel);
     document.body.appendChild(icon);
@@ -398,7 +408,7 @@ function renderPanel() {
         </div>`).join('');
 
     const logHtml = s.judgmentLog.length
-        ? s.judgmentLog.map(j => `<div class="prism-log-entry"><span class="prism-log-time">${new Date(j.ts).toLocaleTimeString()}</span> ${j.text}</div>`).join('')
+        ? s.judgmentLog.map(j => `<div class="prism-log-entry"><span class="prism-log-time">${new Date(j.ts).toLocaleTimeString()}</span> ${escapeHtml(j.text)}</div>`).join('')
         : '<div class="prism-empty">暂无记录</div>';
 
     const completedHtml = s.completedTasks.length
@@ -407,9 +417,10 @@ function renderPanel() {
 
     panel.innerHTML = `
         <div class="prism-panel-header">
-            <span class="prism-panel-title">◈ PRISM</span>
-            <span class="prism-panel-points">${s.points} 积分</span>
-            <button id="prism-panel-close" class="prism-panel-close">✕</button>
+            <span class="prism-panel-title">PRISM</span>
+            <div class="prism-panel-divider"></div>
+            <span class="prism-panel-points">${s.points} PTS</span>
+            <button id="prism-panel-close" class="prism-panel-close" aria-label="关闭面板">✕</button>
         </div>
 
         <div class="prism-section">
@@ -497,12 +508,15 @@ function injectSkillActivation(skill) {
 function showPrismNotice(text) {
     const el = document.createElement('div');
     el.className = 'prism-notice';
-    el.textContent = `◈ ${text}`;
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.textContent = text;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('prism-notice-show'));
     setTimeout(() => {
         el.classList.remove('prism-notice-show');
-        setTimeout(() => el.remove(), 300);
+        el.classList.add('prism-notice-hide');
+        el.addEventListener('animationend', () => el.remove(), { once: true });
     }, 2500);
 }
 
