@@ -1,0 +1,12 @@
+{
+  "display_name": "Prism（监管者系统）",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Talia",
+  "version": "1.0.11",
+  "homePage": "https://github.com/justinggx/prism-system",
+  "auto_update": true
+}
