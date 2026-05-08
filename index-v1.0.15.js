@@ -9,7 +9,7 @@ import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.j
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 
 const EXT_NAME = 'prism-system';
-const EXT_DISPLAY = 'Prism（监管者系统） v1.0.16';
+const EXT_DISPLAY = 'Prism（监管者系统） v1.0.15';
 
 // ── Global settings (shared across all chats) ───────────────
 const DEFAULT_GLOBAL_SETTINGS = {
@@ -360,6 +360,8 @@ function bindSettingsEvents() {
         g.enabled = enabled;
         const topToggle = document.getElementById('prism-enabled-toggle');
         if (topToggle) topToggle.checked = g.enabled;
+        const inlineToggle = document.getElementById('prism-enabled-toggle-inline');
+        if (inlineToggle) inlineToggle.checked = g.enabled;
         const headerToggle = document.getElementById('prism-header-toggle');
         if (headerToggle) {
             headerToggle.textContent = g.enabled ? 'ON' : 'OFF';
@@ -388,7 +390,26 @@ function updateStatusLine() {
     const g = getGlobalSettings();
     const c = getChatSettings();
     el.style.opacity = g.enabled ? '1' : '0.72';
-    el.textContent = g.enabled ? `▸ ACTIVE | ${c.points} PTS` : '▸ DISABLED';
+    el.innerHTML = `
+        <span>${g.enabled ? '▸ ACTIVE' : '▸ DISABLED'}${g.enabled ? ` | ${c.points} PTS` : ''}</span>
+        <label class="prism-status-switch" title="开启/关闭 Prism">
+            <input id="prism-enabled-toggle-inline" type="checkbox" ${g.enabled ? 'checked' : ''} />
+            <span></span>
+        </label>`;
+
+    const inlineToggle = document.getElementById('prism-enabled-toggle-inline');
+    if (inlineToggle) {
+        inlineToggle.addEventListener('change', () => {
+            const g = getGlobalSettings();
+            g.enabled = inlineToggle.checked;
+            const topToggle = document.getElementById('prism-enabled-toggle');
+            if (topToggle) topToggle.checked = g.enabled;
+            saveSettingsDebounced();
+            refreshExtensionPrompt();
+            updateStatusLine();
+            console.log(`[Prism] ${g.enabled ? 'Enabled' : 'Disabled'} by user`);
+        });
+    }
 }
 
 // ============================================================

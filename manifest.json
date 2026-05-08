@@ -3,10 +3,10 @@
   "loading_order": 100,
   "requires": [],
   "optional": [],
-  "js": "index.js",
-  "css": "style.css",
+  "js": "index-v1.0.16.js",
+  "css": "style-v1.0.16.css",
   "author": "Talia",
-  "version": "1.0.11",
+  "version": "1.0.16-cachebust",
   "homePage": "https://github.com/justinggx/prism-system",
   "auto_update": true
 }

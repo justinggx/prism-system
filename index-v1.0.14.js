@@ -9,7 +9,7 @@ import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.j
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 
 const EXT_NAME = 'prism-system';
-const EXT_DISPLAY = 'Prism（监管者系统） v1.0.16';
+const EXT_DISPLAY = 'Prism（监管者系统） v1.0.14';
 
 // ── Global settings (shared across all chats) ───────────────
 const DEFAULT_GLOBAL_SETTINGS = {
@@ -332,7 +332,6 @@ function buildSettingsHtml() {
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
                 <b>Prism（监管者系统）</b>
-                <button id="prism-header-toggle" type="button" style="margin-left:auto;margin-right:8px;padding:3px 10px;border-radius:999px;border:1px solid rgba(199,169,255,.45);background:${g.enabled ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(90,78,110,.7)'};color:#fff;font-size:11px;line-height:1.4;cursor:pointer;">${g.enabled ? 'ON' : 'OFF'}</button>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
@@ -355,29 +354,15 @@ function bindSettingsEvents() {
     updateStatusLine();
 
     // Bind enabled toggle
-    const applyEnabled = (enabled) => {
-        const g = getGlobalSettings();
-        g.enabled = enabled;
-        const topToggle = document.getElementById('prism-enabled-toggle');
-        if (topToggle) topToggle.checked = g.enabled;
-        const headerToggle = document.getElementById('prism-header-toggle');
-        if (headerToggle) {
-            headerToggle.textContent = g.enabled ? 'ON' : 'OFF';
-            headerToggle.style.background = g.enabled ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(90,78,110,.7)';
-        }
-        saveSettingsDebounced();
-        refreshExtensionPrompt();
-        updateStatusLine();
-        console.log(`[Prism] ${g.enabled ? 'Enabled' : 'Disabled'} by user`);
-    };
     const toggle = document.getElementById('prism-enabled-toggle');
-    if (toggle) toggle.addEventListener('change', () => applyEnabled(toggle.checked));
-    const headerToggle = document.getElementById('prism-header-toggle');
-    if (headerToggle) {
-        headerToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            applyEnabled(!getGlobalSettings().enabled);
+    if (toggle) {
+        toggle.addEventListener('change', () => {
+            const g = getGlobalSettings();
+            g.enabled = toggle.checked;
+            saveSettingsDebounced();
+            refreshExtensionPrompt();
+            updateStatusLine();
+            console.log(`[Prism] ${g.enabled ? 'Enabled' : 'Disabled'} by user`);
         });
     }
 }
@@ -388,7 +373,26 @@ function updateStatusLine() {
     const g = getGlobalSettings();
     const c = getChatSettings();
     el.style.opacity = g.enabled ? '1' : '0.72';
-    el.textContent = g.enabled ? `▸ ACTIVE | ${c.points} PTS` : '▸ DISABLED';
+    el.innerHTML = `
+        <span>${g.enabled ? '▸ ACTIVE' : '▸ DISABLED'}${g.enabled ? ` | ${c.points} PTS` : ''}</span>
+        <label class="prism-status-switch" title="开启/关闭 Prism">
+            <input id="prism-enabled-toggle-inline" type="checkbox" ${g.enabled ? 'checked' : ''} />
+            <span></span>
+        </label>`;
+
+    const inlineToggle = document.getElementById('prism-enabled-toggle-inline');
+    if (inlineToggle) {
+        inlineToggle.addEventListener('change', () => {
+            const g = getGlobalSettings();
+            g.enabled = inlineToggle.checked;
+            const topToggle = document.getElementById('prism-enabled-toggle');
+            if (topToggle) topToggle.checked = g.enabled;
+            saveSettingsDebounced();
+            refreshExtensionPrompt();
+            updateStatusLine();
+            console.log(`[Prism] ${g.enabled ? 'Enabled' : 'Disabled'} by user`);
+        });
+    }
 }
 
 // ============================================================
